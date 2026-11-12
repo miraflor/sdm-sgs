@@ -1,0 +1,810 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=26mm,headheight=15pt]{geometry}
+\usepackage{amsmath,amssymb,mathtools,amsthm}
+\usepackage{booktabs,array,tabularx,longtable}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=MidnightBlue,urlcolor=MidnightBlue,citecolor=MidnightBlue,pdftitle={Field Filtering in a Three-Location Spatial Durbin Model: Consequences for SGS Structure Learning}}
+\definecolor{ink}{HTML}{19324C}
+\definecolor{muted}{HTML}{52677B}
+\definecolor{accent}{HTML}{E7EDF3}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\sffamily\color{muted} SDM FIELD FILTERING AND SGS}
+\fancyhead[R]{\small\sffamily\color{muted} THEORETICAL TUTORIAL}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.35pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\setlist[itemize]{topsep=3pt,itemsep=2pt}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\E}{\operatorname{E}}
+\newcommand{\indep}{\mathrel{\perp\!\!\!\perp}}
+\newcommand{\given}{\,\vert\,}
+\newcommand{\yt}{\widetilde y}
+\newcommand{\keyeq}[1]{\begin{equation}\boxed{#1}\end{equation}}
+% \why{...}: the reason for one line of a derivation, printed to the right of that line
+\newcommand{\why}[1]{\text{\small\color{muted}#1}}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+\begin{document}
+\begin{center}
+{\Large\sffamily\bfseries\color{ink} Field Filtering in a Three-Location Spatial Durbin Model}\\[4pt]
+{\large\sffamily Consequences for Constraint-Based Bayesian-Network Structure Learning with SGS}\\[8pt]
+{\normalsize A worked theoretical tutorial for advanced undergraduate and beginning master's students}\\[4pt]
+{\small Working manuscript \textbar\ November 2026}
+\end{center}
+\vspace{5pt}
+\begin{abstract}
+Consider a scalar spatial Durbin model (SDM) over three locations. Does the graph found by the Spirtes--Glymour--Scheines (SGS) constraint-based algorithm change when spatial field effects are removed from the observed outcomes? We derive the answer using only one observed covariate and three outcome variables. First, we distinguish exact removal of the realized field from removal of a fitted spatial mean. Second, under fixed covariates and independent Gaussian disturbances, we derive the covariance and precision matrices of the original and filtered outcomes and explain when the acyclic SDM is a linear Gaussian structural equation model on a DAG. One rule organizes all calculations: each centered outcome is a weighted sum of the three disturbances, and two outcomes can be correlated only if they contain a common disturbance. Third, we perform the six independence checks relevant to SGS on four three-location configurations: the forward chain, reverse chain, fork, and collider. A fifth example shows that a reciprocal, row-normalized spatial-weights matrix can produce a complete conditional-independence skeleton even when locations 1 and 3 are not directly linked in the weights matrix. In these examples, exact field filtering produces mutually independent residual outcomes, whereas the original outcomes may yield a path, an identifiable collider, or a triangle. These are population-level algebraic results, not evidence that the filtered graph recovers an underlying causal system. The distinctions among conditional independence, graph orientation, spatial feedback, and repeated sampling are made explicit.
+\end{abstract}
+
+\section{The question, and what the nodes mean}
+
+We compare two inputs to SGS:
+\begin{align}
+\text{Original data:}&\qquad (y_1,y_2,y_3),\label{eq:original}\\
+\text{Field-filtered data:}&\qquad (z_1,z_2,z_3).\label{eq:filtered}
+\end{align}
+The subscripts $1,2,3$ name \emph{three locations}, not three different outcome types. Each location has one outcome and one covariate. SGS treats the outcomes at the three locations as its three random variables. This decision fixes the meaning of every subscript in the manuscript.
+
+A conditional-independence statement such as $y_1\indep y_3\given y_2$ means that, in the population distribution, outcomes at locations 1 and 3 are independent after conditioning on the outcome at location 2. It is not a statement about conditional independence among three columns for three different economic variables.
+
+\textbf{The argument in four steps.} The rest of the manuscript derives each of these steps.
+\begin{enumerate}[leftmargin=*,label=\arabic*.]
+\item \emph{Original outcomes mix disturbances.} Through the spatial lag $Wy$, the outcome at location $i$ contains the disturbances of the locations in its equation, and of their neighbours.
+\item \emph{Exact filtering removes that channel.} Each filtered value keeps only its own disturbance $\varepsilon_i$.
+\item \emph{Dependence needs a shared disturbance.} Two Gaussian outcomes are marginally dependent only if they contain a common disturbance. Conditioning on a third outcome can remove this dependence (chain, fork) or create it (collider).
+\item \emph{Consequence.} Filtered data share no disturbance, so SGS finds no edges. In the original data, the sharing pattern, fixed by $W$, decides the SGS graph.
+\end{enumerate}
+
+\textbf{Sampling requirement.} To test a three-variable independence assertion, we need repeated observations of the \emph{same three-component random vector} under a stable data-generating distribution (or an alternative justified sampling design). A single cross section containing precisely three site outcomes supplies just \emph{one} realization of $(y_1,y_2,y_3)$; it cannot support the covariance tests below. The algebra uses population distributions, so it does not include sampling variation; Section~\ref{sec:outside} and Section~\ref{sec:design} return to it.
+
+\section{One model, one consistent notation}
+
+The scalar SDM with exactly three locations and one covariate is
+\keyeq{y=\rho Wy+\beta x+\theta Wx+\varepsilon.\label{eq:sdm}}
+All vectors are columns. The notation is deliberately small:
+
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}>{$}l<{$}p{18mm}X@{}}
+\toprule
+\text{Symbol}&Size&Meaning\\\midrule
+ y & $3\times1$ & Outcomes at locations 1, 2, and 3.\\
+ x & $3\times1$ & A single observed covariate at those locations.\\
+ W & $3\times3$ & Known spatial-weights matrix; $w_{ij}$ is the weight on location $j$ in location $i$'s equation.\\
+ \rho & scalar & Coefficient of spatially lagged outcome $Wy$.\\
+ \beta & scalar & Coefficient of local covariate $x$.\\
+ \theta & scalar & Coefficient of spatially lagged covariate $Wx$.\\
+ \varepsilon & $3\times1$ & Disturbance vector.\\
+ f & $3\times1$ & Realized spatial field (defined below).\\
+ z & $3\times1$ & Outcome after exactly removing the realized field.\\
+ \sigma^2 & scalar & Common disturbance variance, assumed positive.\\
+ \yt & $3\times1$ & Centered outcome $y-\E[y\given x]$ (defined in Section~\ref{sec:solve}).\\
+ \Sigma & $3\times3$ & Covariance matrix of the original outcomes.\\
+ \Omega & $3\times3$ & Precision matrix $\Sigma^{-1}$ (defined in Section~\ref{sec:sgs}).\\
+\bottomrule
+\end{tabularx}
+\end{center}
+Here $I$ denotes the $3\times3$ identity matrix. When we write $\E[y\given x]$, $x$ is held fixed: all probability calculations are conditional on the observed covariate vector. In particular, we do \emph{not} treat $x$ as a random spatial process in one section and as a fixed design in another without saying so.
+
+We assume
+\begin{equation}
+\varepsilon\given x\sim N(0,\sigma^2 I),\qquad \sigma^2>0,\qquad I-\rho W\text{ is invertible}.\label{eq:assumptions}
+\end{equation}
+The first assumption says that $\varepsilon_1,\varepsilon_2,\varepsilon_3$ are independent, centered Gaussian variables with common variance $\sigma^2$. For the reciprocal example later (Example 5), $0<\rho<1$ ensures invertibility. For the directed acyclic examples, invertibility holds for every finite $\rho$, but we keep $0<\rho<1$ throughout the examples for easy comparison.
+
+\subsection{Write the three component equations without any new model}
+Since
+\begin{equation}
+Wy=\begin{pmatrix}w_{11}y_1+w_{12}y_2+w_{13}y_3\\w_{21}y_1+w_{22}y_2+w_{23}y_3\\w_{31}y_1+w_{32}y_2+w_{33}y_3\end{pmatrix},
+\qquad
+Wx=\begin{pmatrix}w_{11}x_1+w_{12}x_2+w_{13}x_3\\w_{21}x_1+w_{22}x_2+w_{23}x_3\\w_{31}x_1+w_{32}x_2+w_{33}x_3\end{pmatrix},\label{eq:lags}
+\end{equation}
+the equation at location $i$ is exactly
+\begin{align}
+ y_i&=\rho\sum_{j=1}^3w_{ij}y_j+\beta x_i+\theta\sum_{j=1}^3w_{ij}x_j+\varepsilon_i,\qquad i=1,2,3.\label{eq:element}
+\end{align}
+There is no matrix of cross-variable coefficients: this is the \emph{scalar SDM}, not a multivariate spatial autoregression.
+
+\section{Original, local, field, and filtered outcomes}
+
+Define the realized spatial field to be the part of the SDM that comes from the neighbours:
+\begin{equation}
+ f=\rho Wy+\theta Wx.\label{eq:f}
+\end{equation}
+It is \emph{realized} because it uses the observed $y$, so it contains the disturbances of this particular draw. Regroup the SDM $y=\rho Wy+\beta x+\theta Wx+\varepsilon$:
+\begin{alignat}{2}
+ y&=\rho Wy+\beta x+\theta Wx+\varepsilon &\qquad&\why{the SDM}\notag\\
+  &=\beta x+(\rho Wy+\theta Wx)+\varepsilon &&\why{reorder the terms}\notag\\
+  &=\underbrace{\beta x}_{\text{local}}+\underbrace{f}_{\text{field}}+\underbrace{\varepsilon}_{\text{error}} &&\why{$f=\rho Wy+\theta Wx$}\label{eq:split}
+\end{alignat}
+\textbf{Exact field removal} subtracts the \emph{realized} field $f=\rho Wy+\theta Wx$:
+\begin{alignat}{2}
+ z&=y-f &\qquad&\why{definition of the filter}\notag\\
+  &=(\rho Wy+\beta x+\theta Wx+\varepsilon)-(\rho Wy+\theta Wx) &&\why{insert the SDM for $y$ and the definition of $f$}\notag\\
+  &=\beta x+\varepsilon &&\why{$\rho Wy$ and $\theta Wx$ cancel}\label{eq:z}
+\end{alignat}
+Thus, location by location,
+\keyeq{z_i=\beta x_i+\varepsilon_i,\qquad i=1,2,3.\label{eq:zi}}
+\textbf{Important:} field removal does not remove $\varepsilon_i$. A filter that left only $\beta x_i$ would remove the error \emph{as well as} the field. With fixed $x$, the triple $\beta x$ is the same in every repeated draw; its variances are zero, so covariance-based SGS tests would be undefined.
+
+The algebraic subtraction above is exact when $\rho,\theta,W$ and the realized $y$ and $x$ are known. Section~\ref{sec:outside} explains why estimating the field from data is a different exercise.
+
+\section{Solve the original SDM without skipping the matrix steps}\label{sec:solve}
+
+\textbf{Question:} $y$ appears on both sides of the SDM, so the outcomes are determined simultaneously. What is $y$ in terms of $x$ and $\varepsilon$ only?
+\begin{alignat}{2}
+ y&=\rho Wy+\beta x+\theta Wx+\varepsilon &\qquad&\why{the SDM}\notag\\
+ y-\rho Wy&=\beta x+\theta Wx+\varepsilon &&\why{subtract $\rho Wy$ from both sides}\notag\\
+ Iy-\rho Wy&=\beta Ix+\theta Wx+\varepsilon &&\why{$y=Iy$ and $x=Ix$}\notag\\
+ (I-\rho W)y&=(\beta I+\theta W)x+\varepsilon &&\why{distributive law: factor out $y$ and $x$}\label{eq:move}
+\end{alignat}
+Because $I-\rho W$ is invertible, we can multiply both sides from the left by $(I-\rho W)^{-1}$:
+\begin{alignat}{2}
+ (I-\rho W)^{-1}(I-\rho W)y&=(I-\rho W)^{-1}\bigl[(\beta I+\theta W)x+\varepsilon\bigr] &\qquad&\why{multiply on the left}\notag\\
+ y&=(I-\rho W)^{-1}(\beta I+\theta W)x+(I-\rho W)^{-1}\varepsilon &&\why{$A^{-1}A=I$; distribute}\label{eq:reduced}
+\end{alignat}
+This is a \emph{reduced form}, because the right-hand side contains $x$ and $\varepsilon$ but no $y$.
+
+\subsection{What varies when the covariate is held fixed?}
+
+Take the conditional mean of the reduced form $y=(I-\rho W)^{-1}(\beta I+\theta W)x+(I-\rho W)^{-1}\varepsilon$. The weights $W$, the parameters, and $x$ are fixed, and $\E[\varepsilon\given x]=0$:
+\begin{alignat}{2}
+\E[y\given x]
+&=(I-\rho W)^{-1}(\beta I+\theta W)x+(I-\rho W)^{-1}\E[\varepsilon\given x] &\qquad&\why{fixed matrices move outside $\E$}\notag\\
+&=(I-\rho W)^{-1}(\beta I+\theta W)x &&\why{$\E[\varepsilon\given x]=0$}\label{eq:mean}
+\end{alignat}
+Subtract this mean from the reduced form. The $x$ terms are identical and cancel. We call the result the \emph{centered outcome} $\yt$:
+\keyeq{\yt:=y-\E[y\given x]=(I-\rho W)^{-1}\varepsilon.\label{eq:centered}}
+
+\textbf{How to read $(I-\rho W)^{-1}$: a mixing table.} Row $i$ of $(I-\rho W)^{-1}$ gives how much of each disturbance $\varepsilon_1,\varepsilon_2,\varepsilon_3$ is inside $\yt_i$. For example, in the forward chain of Example 1, row 3 is $(\rho^2,\rho,1)$, so $\yt_3=\rho^2\varepsilon_1+\rho\varepsilon_2+\varepsilon_3$: location 3 contains its own disturbance, part of location 2's, and a smaller part of location 1's.
+
+This is the first key result: \emph{once we hold $x$ fixed, the spatial dependence of $y$ depends on $\rho$, $W$, and $\sigma^2$, but not on $\beta$ or $\theta$.} The Durbin term $\theta Wx$ affects the conditional mean, not the conditional covariance, under these assumptions.
+
+\section{Derive the covariance matrices of the two inputs to SGS}
+
+\subsection{One rule for every covariance: shared disturbances}
+
+\textbf{Question:} when are two centered outcomes correlated? By the mixing-table reading of $\yt=(I-\rho W)^{-1}\varepsilon$, each centered outcome is a weighted sum of the three disturbances:
+\begin{equation}
+\yt_i=a_1\varepsilon_1+a_2\varepsilon_2+a_3\varepsilon_3,\qquad
+\yt_j=b_1\varepsilon_1+b_2\varepsilon_2+b_3\varepsilon_3.
+\end{equation}
+Expand the covariance term by term:
+\begin{alignat}{2}
+\Cov(\yt_i,\yt_j\given x)&=\sum_{k=1}^3\sum_{l=1}^3a_kb_l\Cov(\varepsilon_k,\varepsilon_l\given x) &\qquad&\why{covariance is linear in each argument}\notag\\
+&=\sum_{k=1}^3a_kb_k\Var(\varepsilon_k\given x) &&\why{$\Cov(\varepsilon_k,\varepsilon_l\given x)=0$ for $k\ne l$}\notag\\
+&=\sigma^2(a_1b_1+a_2b_2+a_3b_3) &&\why{$\Var(\varepsilon_k\given x)=\sigma^2$}\label{eq:sharerule}
+\end{alignat}
+\textbf{Reading.} Only disturbances that appear in \emph{both} outcomes contribute. Two outcomes can be correlated only if they contain at least one common disturbance.
+\begin{itemize}
+\item \emph{Shared disturbance.} In the forward chain, $\yt_1=\varepsilon_1$ and $\yt_3=\rho^2\varepsilon_1+\rho\varepsilon_2+\varepsilon_3$. They share $\varepsilon_1$, so $\Cov(\yt_1,\yt_3\given x)=\sigma^2(1\cdot\rho^2)=\rho^2\sigma^2\ne0$.
+\item \emph{No shared disturbance.} For the filtered outcomes, $z_1-\beta x_1=\varepsilon_1$ and $z_3-\beta x_3=\varepsilon_3$. They share nothing, so the covariance is $\sigma^2(1\cdot0+0\cdot0+0\cdot1)=0$.
+\end{itemize}
+
+\subsection{The covariance matrix of the original outcomes}
+
+The same rule, written for all pairs at once. Write the covariance matrix of the original outcomes as $\Sigma=\Cov(y\given x)$ and use $\yt=(I-\rho W)^{-1}\varepsilon$:
+\begin{alignat}{2}
+\Sigma
+&=\E\left[\yt\,\yt^{\mathsf T}\given x\right] &\qquad&\why{definition; $\yt=y-\E[y\given x]$}\notag\\
+&=\E\left[(I-\rho W)^{-1}\varepsilon\left((I-\rho W)^{-1}\varepsilon\right)^{\mathsf T}\,\middle|\,x\right] &&\why{insert $\yt=(I-\rho W)^{-1}\varepsilon$}\notag\\
+&=\E\left[(I-\rho W)^{-1}\varepsilon\varepsilon^{\mathsf T}\left((I-\rho W)^{-1}\right)^{\mathsf T}\,\middle|\,x\right] &&\why{$(AB)^{\mathsf T}=B^{\mathsf T}A^{\mathsf T}$}\notag\\
+&=(I-\rho W)^{-1}\E[\varepsilon\varepsilon^{\mathsf T}\given x]\left((I-\rho W)^{-1}\right)^{\mathsf T} &&\why{fixed matrices move outside $\E$}\notag\\
+&=(I-\rho W)^{-1}(\sigma^2 I)\left((I-\rho W)^{-1}\right)^{\mathsf T} &&\why{$\E[\varepsilon\varepsilon^{\mathsf T}\given x]=\sigma^2I$}\label{eq:sigma1}
+\end{alignat}
+Therefore
+\keyeq{\Sigma=\sigma^2(I-\rho W)^{-1}(I-\rho W)^{-\mathsf T}.\label{eq:sigma}}
+Here $A^{-\mathsf T}$ means $(A^{-1})^{\mathsf T}$. Entry $(i,j)$ of this product is $\sigma^2$ times the sum of products of row $i$ and row $j$ of the mixing table, which is exactly the shared-disturbance rule $\sigma^2(a_1b_1+a_2b_2+a_3b_3)$. Since $\sigma^2>0$ and $I-\rho W$ is invertible, $\Sigma$ is positive definite.
+
+\subsection{The covariance matrix of the filtered outcomes}
+
+For the filtered outcomes $z=\beta x+\varepsilon$:
+\begin{alignat}{2}
+ z-\E[z\given x]&=(\beta x+\varepsilon)-\beta x=\varepsilon, &\qquad&\why{$\beta x$ is fixed; $\E[\varepsilon\given x]=0$}\notag\\
+ \Cov(z\given x)&=\E[\varepsilon\varepsilon^{\mathsf T}\given x]=\sigma^2I=\sigma^2\begin{pmatrix}1&0&0\\0&1&0\\0&0&1\end{pmatrix}. &&\why{independent disturbances}\label{eq:sigmaz}
+\end{alignat}
+Consequently $\Cov(z_i,z_j\given x)=0$ whenever $i\neq j$. In mixing-table language, the filtered mixing table is $I$: each filtered value contains only its own disturbance. Under a jointly Gaussian distribution, zero covariance is equivalent to independence, so $z_1,z_2,z_3$ are mutually independent.
+
+\begin{proposition}[Exact filtering under the stated SDM]
+Suppose $x$ is fixed, $\varepsilon\given x\sim N(0,\sigma^2I)$, and field filtering subtracts $\rho Wy+\theta Wx$ exactly. Then every pair $z_i,z_j$ with $i\ne j$ is independent both marginally (conditional on the fixed $x$) and after conditioning on the remaining $z_k$. Population SGS returns the empty skeleton on $(z_1,z_2,z_3)$.
+\end{proposition}
+\begin{proof}
+By $z=y-f=\beta x+\varepsilon$, we have $z_i=\beta x_i+\varepsilon_i$. Under fixed $x$ the first summand is constant, so $z_i$ varies only through $\varepsilon_i$, and the three disturbances are independent. Conditioning on a third independent disturbance does not change the joint distribution of the other two. SGS deletes an edge whenever some conditioning set makes its endpoints independent; the empty conditioning set already does so for all three pairs.
+\end{proof}
+
+\section{How SGS makes decisions with three variables}\label{sec:sgs}
+
+SGS is a \emph{constraint-based} procedure: it asks which conditional independences hold and uses those answers to remove and, when justified, orient edges \cite{spirtes,colombo}. We use the \emph{population oracle} version: the independence tests are answered exactly, with no $p$-values or finite-sample mistakes.
+
+With three variables $y_1,y_2,y_3$, there are only three pairs. For each pair there are only two possible conditioning sets: the empty set and the singleton containing the third variable. Thus SGS needs these six possible checks:
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Pair&Unconditional check&Conditional check\\\midrule
+$(1,2)$&$y_1\indep y_2$&$y_1\indep y_2\given y_3$\\
+$(1,3)$&$y_1\indep y_3$&$y_1\indep y_3\given y_2$\\
+$(2,3)$&$y_2\indep y_3$&$y_2\indep y_3\given y_1$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The SGS skeleton procedure is especially simple here:
+\begin{enumerate}[leftmargin=*,label=\arabic*.]
+\item Begin with all three undirected edges: $1-2$, $1-3$, $2-3$.
+\item For each pair $(i,j)$, remove edge $i-j$ if $y_i$ and $y_j$ are independent either unconditionally or after conditioning on the only remaining variable $y_k$. The conditioning set that makes them independent is called the \emph{separating set}.
+\item If the resulting skeleton is $1-2-3$ with $1$ and $3$ nonadjacent, check whether the middle variable $y_2$ belonged to the separating set for $(1,3)$. If it did \emph{not}, orient the unshielded triple as $1\to2\leftarrow3$. If it did, do not make that collider orientation.
+\item Apply any additional orientations logically compelled by existing arrows, without creating cycles or additional unshielded colliders. In the three-node examples below, this adds no further arrows.
+\end{enumerate}
+In step 3, the population examples have a unique relevant separating set. In a sample, inconsistent independence decisions can occur, and implementations must resolve them explicitly. A constraint-based graph is a claim about independence patterns; it is a causal DAG only if assumptions such as an appropriate DAG Markov and faithfulness model are defensible.
+
+\subsection{How Gaussian independence tests become algebra}
+
+\textbf{Unconditional tests.} For jointly Gaussian outcomes, unconditional independence is equivalent to zero covariance:
+\begin{equation}
+ y_i\indep y_j\given x \quad\Longleftrightarrow\quad\Sigma_{ij}=0,\qquad i\ne j.\label{eq:uncor}
+\end{equation}
+Joint Gaussianity is necessary here. Example where the equivalence fails: let $u\sim N(0,1)$ and $v=u^2$. Then $\Cov(u,v)=\E[u^3]-\E[u]\E[u^2]=0$, but $v$ is a function of $u$, so the two are dependent. The pair $(u,v)$ is not jointly Gaussian.
+
+\textbf{Conditional tests.} \emph{Question:} once $y_k$ is known, is any association left between $y_i$ and $y_j$? We derive the answer in four steps. In these steps, $\yt_i,\yt_j,\yt_k$ are the centered outcomes $\yt=y-\E[y\given x]$; subtracting fixed means does not change any covariance.
+
+\emph{Step 1: remove from $\yt_i$ and $\yt_j$ the part that $\yt_k$ predicts.} The regression coefficients of $\yt_i$ and $\yt_j$ on $\yt_k$ are $\Sigma_{ik}/\Sigma_{kk}$ and $\Sigma_{jk}/\Sigma_{kk}$. Define the remainders
+\begin{equation}
+ r_i=\yt_i-\frac{\Sigma_{ik}}{\Sigma_{kk}}\yt_k,\qquad
+ r_j=\yt_j-\frac{\Sigma_{jk}}{\Sigma_{kk}}\yt_k.
+\end{equation}
+\emph{Step 2: the remainder no longer moves with $\yt_k$.}
+\begin{equation}
+\Cov(r_i,\yt_k\given x)=\Sigma_{ik}-\frac{\Sigma_{ik}}{\Sigma_{kk}}\Sigma_{kk}=0,\qquad\text{and in the same way}\quad\Cov(r_j,\yt_k\given x)=0.
+\end{equation}
+\emph{Step 3: conditioning on $y_k$ leaves only the remainders random.} The vector $(r_i,r_j,\yt_k)$ is jointly Gaussian, so zero covariance with $\yt_k$ means independence of $\yt_k$. Given $y_k$, the subtracted terms $(\Sigma_{ik}/\Sigma_{kk})\yt_k$ and $(\Sigma_{jk}/\Sigma_{kk})\yt_k$ are fixed numbers, and the distribution of $(r_i,r_j)$ does not change. Hence
+\begin{equation}
+\Cov(y_i,y_j\given y_k,x)=\Cov(r_i,r_j\given x).
+\end{equation}
+\emph{Step 4: expand the covariance of the remainders}, with $r_i=\yt_i-\frac{\Sigma_{ik}}{\Sigma_{kk}}\yt_k$ and $r_j=\yt_j-\frac{\Sigma_{jk}}{\Sigma_{kk}}\yt_k$:
+\begin{alignat}{2}
+\Cov(r_i,r_j\given x)
+ &=\Sigma_{ij}-\frac{\Sigma_{jk}}{\Sigma_{kk}}\Sigma_{ik}-\frac{\Sigma_{ik}}{\Sigma_{kk}}\Sigma_{kj}+\frac{\Sigma_{ik}\Sigma_{jk}}{\Sigma_{kk}^2}\Sigma_{kk} &\qquad&\why{expand the four products}\notag\\
+ &=\Sigma_{ij}-\frac{\Sigma_{ik}\Sigma_{jk}}{\Sigma_{kk}}-\frac{\Sigma_{ik}\Sigma_{jk}}{\Sigma_{kk}}+\frac{\Sigma_{ik}\Sigma_{jk}}{\Sigma_{kk}} &&\why{$\Sigma_{kj}=\Sigma_{jk}$; cancel one $\Sigma_{kk}$}\notag\\
+ &=\Sigma_{ij}-\frac{\Sigma_{ik}\Sigma_{jk}}{\Sigma_{kk}} &&\why{combine}\label{eq:condcov}
+\end{alignat}
+Thus
+\keyeq{y_i\indep y_j\given(y_k,x)\quad\Longleftrightarrow\quad
+\Cov(y_i,y_j\given y_k,x)=\Sigma_{ij}-\frac{\Sigma_{ik}\Sigma_{jk}}{\Sigma_{kk}}=0.\label{eq:citest}}
+The denominator is positive because $\Sigma$ is positive definite. In this model, the conditional covariance does not depend on the particular value of the conditioned outcome.
+
+\textbf{How to read the formula.} $\Sigma_{ij}$ is the total covariance of $i$ and $j$; $\Sigma_{ik}\Sigma_{jk}/\Sigma_{kk}$ is the covariance that goes through $y_k$. The difference is what is left after $y_k$ is known. Two cases from the examples below:
+\begin{itemize}
+\item \emph{Dependence removed} (forward chain, Example 1): total $\Sigma_{13}=\rho^2\sigma^2$; through 2, also $\rho^2\sigma^2$. Nothing is left, so $y_1\indep y_3\given(y_2,x)$.
+\item \emph{Dependence created} (collider, Example 4): total $\Sigma_{13}=0$; through 2, $\rho^2\sigma^2/(1+2\rho^2)>0$. The remainder is negative, so conditioning on $y_2$ creates dependence.
+\end{itemize}
+
+\textbf{A computational shortcut: the precision matrix.} The tests $\Sigma_{ij}-\Sigma_{ik}\Sigma_{jk}/\Sigma_{kk}=0$ can also be checked using the inverse covariance $\Omega=\Sigma^{-1}$, called the \emph{precision matrix}. Start from $\Sigma=\sigma^2(I-\rho W)^{-1}(I-\rho W)^{-\mathsf T}$:
+\begin{alignat}{2}
+\Omega
+ &=\frac{1}{\sigma^2}\left[(I-\rho W)^{-\mathsf T}\right]^{-1}\left[(I-\rho W)^{-1}\right]^{-1} &\qquad&\why{$(AB)^{-1}=B^{-1}A^{-1}$: invert in reverse order}\notag\\
+ &=\frac{1}{\sigma^2}(I-\rho W)^{\mathsf T}(I-\rho W) &&\why{$(A^{-1})^{-1}=A$}\notag\\
+ &=\frac{1}{\sigma^2}\bigl[I-\rho W-\rho W^{\mathsf T}+\rho^2W^{\mathsf T}W\bigr] &&\why{multiply out}\label{eq:precision}
+\end{alignat}
+Since $(W^{\mathsf T}W)_{ij}=\sum_{k=1}^3w_{ki}w_{kj}$, the off-diagonal entries are
+\begin{equation}
+\boxed{\Omega_{ij}=
+\frac{-\rho(w_{ij}+w_{ji})+\rho^2\sum_{k=1}^3w_{ki}w_{kj}}{\sigma^2},
+\qquad i\ne j.}\label{eq:omegaij}
+\end{equation}
+No matrix inversion is needed: $\Omega$ comes directly from $W$.
+
+\emph{Why $\Omega_{ij}$ tests conditional independence.} The inverse of a matrix is its cofactor matrix, transposed, divided by its determinant. Take the pair $(1,3)$ with $k=2$; the cofactor for entry $(1,3)$ of $\Sigma^{-1}$ comes from deleting row 3 and column 1 of $\Sigma$:
+\begin{alignat}{2}
+\Omega_{13}&=\frac{1}{\det\Sigma}\det\begin{pmatrix}\Sigma_{12}&\Sigma_{13}\\\Sigma_{22}&\Sigma_{23}\end{pmatrix} &\qquad&\why{cofactor formula for the inverse}\notag\\
+&=\frac{\Sigma_{12}\Sigma_{23}-\Sigma_{13}\Sigma_{22}}{\det\Sigma} &&\why{$2\times2$ determinant}\notag\\
+&=-\frac{\Sigma_{22}}{\det\Sigma}\left(\Sigma_{13}-\frac{\Sigma_{12}\Sigma_{23}}{\Sigma_{22}}\right) &&\why{factor out $-\Sigma_{22}$}\notag\\
+&=-\frac{\Sigma_{22}}{\det\Sigma}\Cov(y_1,y_3\given y_2,x) &&\why{conditional covariance formula}\label{eq:cofactor}
+\end{alignat}
+Since $\Sigma$ is positive definite, $\Sigma_{22}>0$ and $\det\Sigma>0$. Hence $\Omega_{13}=0$ exactly when the conditional covariance of $y_1$ and $y_3$ given $y_2$ is zero, and the two have opposite signs. The pairs $(1,2)$ and $(2,3)$ work the same way after relabeling the indices. For a jointly Gaussian triple, therefore, $\Omega_{ij}=0$ if and only if $y_i\indep y_j\given(y_k,x)$, where $k$ is the remaining node.
+
+\emph{How to read $\Omega_{ij}$.} The formula $\Omega_{ij}=[-\rho(w_{ij}+w_{ji})+\rho^2\sum_kw_{ki}w_{kj}]/\sigma^2$ has two terms. The first is nonzero when $i$ and $j$ are directly linked ($w_{ij}\ne0$ or $w_{ji}\ne0$). The second is nonzero when both $i$ and $j$ enter the equation of the same location $k$ ($w_{ki}w_{kj}\ne0$). So $y_i$ and $y_j$ stay dependent given the third outcome if they are directly linked or share a common receiving location, unless the two terms cancel exactly. In graph language, for an acyclic $W$ and without exact cancellation, the graph of nonzero $\Omega_{ij}$ is the \emph{moral graph}: the DAG with arrows made undirected and with an extra edge between any two parents of a common child.
+
+We use these identities only to verify conditional-independence tests; they do not, by themselves, orient the causal arrows in a DAG.
+
+\subsection{Linear Gaussian structural equation models on a DAG}
+
+\textbf{Why a DAG model is relevant.} A directed acyclic graph (DAG) has arrows but no directed cycle. In a \emph{structural equation model} (SEM), an arrow $j\to i$ means that the value at node $j$ appears on the right-hand side of the structural equation for node $i$. We consider \emph{linear Gaussian} SEMs because the outcomes in this paper are continuous, their equations are linear, and their disturbances are Gaussian \cite{koller,peters}.
+
+Write $\operatorname{Pa}(i)$ for the set of \emph{parents} of node $i$: the nodes with arrows pointing into $i$. In the scalar SDM, the weight $w_{ij}$ multiplies $y_j$ in the equation for $y_i$. Therefore, when $w_{ij}\ne0$ and $\rho\ne0$, the corresponding structural arrow is $j\to i$, \emph{not} $i\to j$. If the nonzero weights describe an acyclic directed graph (and $w_{ii}=0$), the SDM is a particular linear Gaussian SEM on that DAG:
+\begin{equation}
+\boxed{
+ y_i=\rho\sum_{j\in\operatorname{Pa}(i)}w_{ij}y_j
+     +\beta x_i+\theta\sum_{j=1}^3w_{ij}x_j+\varepsilon_i,
+ \qquad i=1,2,3.}
+\label{eq:sem}
+\end{equation}
+This is \emph{exactly the SDM equation} $y_i=\rho\sum_{j}w_{ij}y_j+\beta x_i+\theta\sum_jw_{ij}x_j+\varepsilon_i$, with the outcome sum restricted to its nonzero-weight parents. We have introduced no extra outcome, coefficient, or disturbance. The covariates $x$ remain fixed throughout: they affect the conditional means, but they are not additional nodes in the three-node SGS graph.
+
+\textbf{Why ``structural'' and ``Gaussian'' matter.} For a DAG, the nodes can be placed in an order in which every parent comes before its child. Hence each outcome can be generated using only earlier outcomes and its own new disturbance. With mutually independent $\varepsilon_1,\varepsilon_2,\varepsilon_3\sim N(0,\sigma^2)$, each node's disturbance is independent of its parents. Rearrange the structural equation to isolate that disturbance:
+\begin{align}
+ \varepsilon_i
+ &=y_i-\rho\sum_{j\in\operatorname{Pa}(i)}w_{ij}y_j
+     -\beta x_i-\theta\sum_{j=1}^3w_{ij}x_j.\label{eq:semerror}
+\end{align}
+Holding $x$ and the parent outcomes fixed leaves only $\varepsilon_i\sim N(0,\sigma^2)$ random. Adding fixed numbers to a normal variable changes only its mean, so
+\begin{equation}
+ \boxed{
+ y_i\given (y_{\operatorname{Pa}(i)},x)
+ \sim N\!\left(\rho\sum_{j\in\operatorname{Pa}(i)}w_{ij}y_j
+        +\beta x_i+\theta\sum_{j=1}^3w_{ij}x_j,\ \sigma^2\right).}
+ \label{eq:semconditional}
+\end{equation}
+Here $y_{\operatorname{Pa}(i)}$ means the values at the parents of $i$; for a node with no parents, that part of the conditioning is absent. This is a \emph{linear Gaussian conditional distribution}: its mean is linear in parent outcomes, and its variance is the same $\sigma^2$ as that of the independent disturbance.
+
+\textbf{From three structural equations to one joint distribution.} The probability density of a Gaussian DAG-SEM factors into a product of the three node-specific conditional densities:
+\begin{equation}
+ \boxed{p(y_1,y_2,y_3\given x)
+ =\prod_{i=1}^{3}p(y_i\given y_{\operatorname{Pa}(i)},x).}
+ \label{eq:semfactor}
+\end{equation}
+To see the factorization concretely, consider $1\to2\to3$. Its first node has no parents, the second has parent 1, and the third has parent 2:
+\begin{alignat}{2}
+ p(y_1,y_2,y_3\given x)
+ &=p(y_1\given x)\,p(y_2\given y_1,x)\,p(y_3\given y_1,y_2,x) &\qquad&\why{chain rule of probability (always true)}\notag\\
+ &=p(y_1\given x)\,p(y_2\given y_1,x)\,p(y_3\given y_2,x) &&\why{$y_3$ is made from $y_2$, $x$, and $\varepsilon_3$ only}\label{eq:chainfactor}
+\end{alignat}
+The second equality holds because, once $y_2$ and $x$ are given, $y_3$ varies only through its own new disturbance $\varepsilon_3$, and knowing $y_1$ does not change the distribution of $\varepsilon_3$. Thus the joint density implies
+\begin{equation}
+ y_1\indep y_3\given (y_2,x).\label{eq:semdseparation}
+\end{equation}
+This is precisely the independence that SGS finds in Example 1. More generally, a DAG gives graphical predictions about conditional independence by \emph{d-separation}: a rule that reads from the arrows alone which conditional independences every distribution on the DAG must have. The statistical distribution is \emph{Markov} to the DAG when these predicted independences hold. \emph{Faithfulness} additionally requires that there be no extra independences caused by special numerical cancellations; SGS's usual structural interpretation requires attention to both assumptions \cite{spirtes,peters}.
+
+\textbf{Three nodes, two distinct independence patterns.} In a chain $1\to2\to3$, a reverse chain $1\leftarrow2\leftarrow3$, or a fork $1\leftarrow2\to3$, the two endpoints are independent \emph{conditional on} the middle variable (holding $x$ fixed): conditioning on 2 blocks the path. These three DAGs are indistinguishable by observational conditional independences, so SGS leaves their path edges unoriented. A collider $1\to2\leftarrow3$ is different: its endpoints are independent \emph{without} conditioning on the middle variable, but become dependent when the middle variable is conditioned upon: conditioning on the common effect opens the path. The four examples below verify these claims from their covariance matrices rather than asking the reader to accept them only from a diagram.
+
+\textbf{Connection back to the SDM solution.} When three nodes form a DAG, a directed path can contain at most two arrows, because a path with three arrows would need four distinct nodes. Consequently $W^3=0$, and we can verify a finite inverse directly:
+\begin{alignat}{2}
+ (I-\rho W)(I+\rho W+\rho^2W^2)
+ &=I+\rho W+\rho^2W^2-\rho W-\rho^2W^2-\rho^3W^3 &\qquad&\why{multiply out}\notag\\
+ &=I-\rho^3W^3=I &&\why{$W^3=0$}\label{eq:seminverse}
+\end{alignat}
+Thus in these \emph{acyclic} examples the mixing table is
+\begin{equation}
+ (I-\rho W)^{-1}=I+\rho W+\rho^2W^2,
+\end{equation}
+and the Gaussian covariance is exactly $\Sigma=\sigma^2(I-\rho W)^{-1}(I-\rho W)^{-\mathsf T}$ derived above. The term $W^2$ represents two-arrow paths and explains why endpoints of a chain may be marginally associated even without a direct arrow between them.
+
+\textbf{A boundary of the analogy.} The SDM permits reciprocal weights, for example $w_{12}\ne0$ and $w_{21}\ne0$. Then its simultaneous equations contain the directed cycle $1\rightleftarrows2$ and are \emph{not} structural equations on the same three-node DAG. The resulting Gaussian distribution can still be represented statistically by some DAG factorization, but that factorization need not reproduce the causal directions or feedback of the original SDM. SGS applied to such a distribution cannot by itself recover the simultaneous spatial mechanism. The fifth worked example illustrates this distinction.
+
+\section{Worked example 1: a forward chain}
+
+Let
+\begin{equation}
+ W=\begin{pmatrix}
+0&0&0\\ 1&0&0\\ 0&1&0
+\end{pmatrix},\qquad 0<\rho<1.\label{eq:wchain}
+\end{equation}
+The SDM component equations are
+\begin{align}
+ y_1&=\beta x_1+\varepsilon_1,\notag\\
+ y_2&=\rho y_1+\beta x_2+\theta x_1+\varepsilon_2,\notag\\
+ y_3&=\rho y_2+\beta x_3+\theta x_2+\varepsilon_3.\label{eq:chain3}
+\end{align}
+The spatial-lag terms follow from $Wy=(0,y_1,y_2)^{\mathsf T}$ and $Wx=(0,x_1,x_2)^{\mathsf T}$. The conditional means change with $x$, but we are studying the covariance across repeated draws with that $x$ fixed.
+
+\subsection{Derive all three centered outcomes by substitution}
+Subtract each conditional mean. The terms in $x$ cancel, and the centered outcomes $\yt=y-\E[y\given x]$ satisfy:
+\begin{alignat}{2}
+ \yt_1&=\varepsilon_1 &\qquad&\why{location 1 has no parents}\notag\\
+ \yt_2&=\rho\yt_1+\varepsilon_2=\rho\varepsilon_1+\varepsilon_2 &&\why{insert $\yt_1=\varepsilon_1$}\notag\\
+ \yt_3&=\rho\yt_2+\varepsilon_3=\rho(\rho\varepsilon_1+\varepsilon_2)+\varepsilon_3=\rho^2\varepsilon_1+\rho\varepsilon_2+\varepsilon_3 &&\why{insert $\yt_2=\rho\varepsilon_1+\varepsilon_2$}\label{eq:chaincenter}
+\end{alignat}
+\textbf{Before computing.} $\yt_1$ and $\yt_3$ share $\varepsilon_1$, so they are marginally dependent. Given $\yt_2$, the rest of $\yt_3=\rho\yt_2+\varepsilon_3$ is $\varepsilon_3$, which is independent of $\yt_1=\varepsilon_1$. So we expect $y_1\indep y_3\given(y_2,x)$. The covariances below confirm this.
+
+Now calculate each covariance with the shared-disturbance rule $\Cov(\yt_i,\yt_j\given x)=\sigma^2(a_1b_1+a_2b_2+a_3b_3)$:
+\begin{align}
+\Sigma_{11}&=\Var(\varepsilon_1)=\sigma^2,\notag\\
+\Sigma_{12}&=\Cov(\varepsilon_1,\rho\varepsilon_1+\varepsilon_2)=\rho\sigma^2,\notag\\
+\Sigma_{13}&=\Cov(\varepsilon_1,\rho^2\varepsilon_1+\rho\varepsilon_2+\varepsilon_3)=\rho^2\sigma^2,\notag\\
+\Sigma_{22}&=\Var(\rho\varepsilon_1+\varepsilon_2)=\rho^2\sigma^2+\sigma^2,\notag\\
+\Sigma_{23}&=\Cov(\rho\varepsilon_1+\varepsilon_2,\rho^2\varepsilon_1+\rho\varepsilon_2+\varepsilon_3)=\rho^3\sigma^2+\rho\sigma^2,\notag\\
+\Sigma_{33}&=\Var(\rho^2\varepsilon_1+\rho\varepsilon_2+\varepsilon_3)=\rho^4\sigma^2+\rho^2\sigma^2+\sigma^2.
+\end{align}
+Putting the six distinct entries in one symmetric matrix,
+\begin{equation}
+\Sigma=\sigma^2\begin{pmatrix}
+1&\rho&\rho^2\\
+\rho&1+\rho^2&\rho+\rho^3\\
+\rho^2&\rho+\rho^3&1+\rho^2+\rho^4
+\end{pmatrix}.\label{eq:sigmachain}
+\end{equation}
+
+\subsection{Execute the six SGS checks}
+\textbf{Marginal checks.} The three unconditional pair covariances are $\Sigma_{12}=\rho\sigma^2$, $\Sigma_{13}=\rho^2\sigma^2$, and $\Sigma_{23}=(\rho+\rho^3)\sigma^2$. All are nonzero for $\rho>0$. Hence the marginal checks delete no edges.
+
+\textbf{Conditional check for $(1,3)$ given 2.} Use the conditional covariance formula with $i=1$, $j=3$, $k=2$:
+\begin{alignat}{2}
+\Cov(y_1,y_3\given y_2,x)
+&=\Sigma_{13}-\frac{\Sigma_{12}\Sigma_{23}}{\Sigma_{22}} &\qquad&\why{conditional covariance formula}\notag\\
+&=\rho^2\sigma^2-\frac{(\rho\sigma^2)((\rho+\rho^3)\sigma^2)}{(1+\rho^2)\sigma^2} &&\why{insert the four entries}\notag\\
+&=\rho^2\sigma^2-\frac{\rho^2(1+\rho^2)\sigma^2}{1+\rho^2} &&\why{$\rho(\rho+\rho^3)=\rho^2(1+\rho^2)$; cancel one $\sigma^2$}\notag\\
+&=\rho^2\sigma^2-\rho^2\sigma^2=0 &&\why{cancel $1+\rho^2$}\label{eq:chainCI}
+\end{alignat}
+Thus $y_1\indep y_3\given(y_2,x)$: SGS removes edge $1-3$.
+
+\textbf{Conditional checks for the adjacent pairs.} Use the precision matrix $\Omega=\frac{1}{\sigma^2}(I-\rho W)^{\mathsf T}(I-\rho W)$. Here
+\begin{equation}
+I-\rho W=\begin{pmatrix}1&0&0\\-\rho&1&0\\0&-\rho&1\end{pmatrix},\qquad
+\Omega=\frac1{\sigma^2}\begin{pmatrix}
+1+\rho^2&-\rho&0\\-\rho&1+\rho^2&-\rho\\0&-\rho&1
+\end{pmatrix}.
+\end{equation}
+In particular $\Omega_{12}=-\rho/\sigma^2\ne0$ and $\Omega_{23}=-\rho/\sigma^2\ne0$ (direct links), while $\Omega_{13}=0$ (no direct link and no common receiving location), which agrees with the conditional covariance just computed. So neither $(1,2)$ nor $(2,3)$ becomes independent after conditioning on the third outcome. All six checks are now resolved.
+
+\textbf{SGS result on originals:} $1-2-3$ with no compelled arrowheads. The separating set for 1 and 3 is $\{2\}$, so the middle node is \emph{not} oriented as a collider.
+
+\textbf{SGS result after field removal:} no edges, because $(z_1,z_2,z_3)=(\beta x_1+\varepsilon_1,\beta x_2+\varepsilon_2,\beta x_3+\varepsilon_3)$ share no disturbance.
+
+\section{Worked example 2: a reverse chain}
+
+Reverse the spatial input direction:
+\begin{equation}
+ W=\begin{pmatrix}0&1&0\\0&0&1\\0&0&0\end{pmatrix}.\label{eq:wrev}
+\end{equation}
+Now location 3 has no parents, location 3 enters location 2's equation, and location 2 enters location 1's equation. The centered outcomes are
+\begin{alignat}{2}
+ \yt_3&=\varepsilon_3, &\qquad&\why{location 3 has no parents}\notag\\
+ \yt_2&=\rho\yt_3+\varepsilon_2=\rho\varepsilon_3+\varepsilon_2, &&\why{insert $\yt_3=\varepsilon_3$}\notag\\
+ \yt_1&=\rho\yt_2+\varepsilon_1=\rho(\rho\varepsilon_3+\varepsilon_2)+\varepsilon_1=\varepsilon_1+\rho\varepsilon_2+\rho^2\varepsilon_3. &&\why{insert $\yt_2=\rho\varepsilon_3+\varepsilon_2$}\label{eq:revcenter}
+\end{alignat}
+By the shared-disturbance rule, $\Sigma_{13}=\Cov(\yt_1,\yt_3\given x)=\rho^2\sigma^2$, $\Sigma_{12}=\Cov(\yt_1,\yt_2\given x)=(\rho+\rho^3)\sigma^2$, $\Sigma_{23}=\rho\sigma^2$, and $\Sigma_{22}=\Var(\yt_2\given x)=(1+\rho^2)\sigma^2$. Therefore
+\begin{alignat}{2}
+\Cov(y_1,y_3\given y_2,x)
+&=\Sigma_{13}-\frac{\Sigma_{12}\Sigma_{23}}{\Sigma_{22}}=\rho^2\sigma^2-\frac{((\rho+\rho^3)\sigma^2)(\rho\sigma^2)}{(1+\rho^2)\sigma^2} &\qquad&\why{insert the four entries}\notag\\
+&=\rho^2\sigma^2-\rho^2\sigma^2=0. &&\why{$\rho(\rho+\rho^3)=\rho^2(1+\rho^2)$}\label{eq:revci}
+\end{alignat}
+The intuition is the same as in Example 1, with the direction reversed: given $\yt_2$, the rest of $\yt_1=\rho\yt_2+\varepsilon_1$ is $\varepsilon_1$, which is independent of $\yt_3=\varepsilon_3$. The precision matrix is
+\begin{equation}
+\Omega=\frac1{\sigma^2}\begin{pmatrix}
+1&-\rho&0\\-\rho&1+\rho^2&-\rho\\0&-\rho&1+\rho^2
+\end{pmatrix}.
+\end{equation}
+The adjacent pairs have $\Omega_{12}=\Omega_{23}=-\rho/\sigma^2\ne0$, so their conditional covariance tests remain nonzero. SGS again returns the undirected path $1-2-3$, not a fully oriented reverse chain. The reversed direction is present in the constructed SDM equations, but it is \emph{not identified} from the independence pattern.
+
+\section{Worked example 3: a fork}
+
+Take
+\begin{equation}
+ W=\begin{pmatrix}0&1&0\\0&0&0\\0&1&0\end{pmatrix}.\label{eq:wfork}
+\end{equation}
+Location 2 enters the equations for both locations 1 and 3. Subtracting fixed conditional means gives
+\begin{align}
+ \yt_2&=\varepsilon_2,\notag\\
+ \yt_1&=\rho\yt_2+\varepsilon_1=\rho\varepsilon_2+\varepsilon_1,\notag\\
+ \yt_3&=\rho\yt_2+\varepsilon_3=\rho\varepsilon_2+\varepsilon_3.\label{eq:forkcenter}
+\end{align}
+$\yt_1$ and $\yt_3$ share $\varepsilon_2$, so by the shared-disturbance rule
+\begin{align}
+\Sigma_{13}
+&=\Cov(\rho\varepsilon_2+\varepsilon_1,\rho\varepsilon_2+\varepsilon_3)=\rho^2\Var(\varepsilon_2)=\rho^2\sigma^2,\notag\\
+\Sigma_{12}&=\rho\sigma^2,\quad
+\Sigma_{23}=\rho\sigma^2,\quad
+\Sigma_{22}=\sigma^2.\label{eq:forkmom}
+\end{align}
+Thus locations 1 and 3 are marginally associated, but they become independent given location 2:
+\begin{alignat}{2}
+ \Cov(y_1,y_3\given y_2,x)
+ &=\Sigma_{13}-\frac{\Sigma_{12}\Sigma_{23}}{\Sigma_{22}} &\qquad&\why{conditional covariance formula}\notag\\
+ &=\rho^2\sigma^2-\frac{(\rho\sigma^2)(\rho\sigma^2)}{\sigma^2}=\rho^2\sigma^2-\rho^2\sigma^2=0. &&\why{insert the four entries}\label{eq:forkci}
+\end{alignat}
+Intuition: given $\yt_2=\varepsilon_2$, the remaining parts of $\yt_1$ and $\yt_3$ are $\varepsilon_1$ and $\varepsilon_3$, which are independent. The precision matrix follows by multiplying $I-\rho W$ by its transpose, $\Omega=\frac1{\sigma^2}(I-\rho W)^{\mathsf T}(I-\rho W)$:
+\begin{equation}
+\Omega=\frac1{\sigma^2}\begin{pmatrix}
+1&-\rho&0\\-\rho&1+2\rho^2&-\rho\\0&-\rho&1
+\end{pmatrix}.
+\end{equation}
+The nonzero $(1,2)$ and $(2,3)$ precision entries show that those edges survive conditioning on the remaining site. SGS again returns $1-2-3$ with \emph{no} compelled directions.
+
+The forward chain, reverse chain, and fork all imply the same independence pattern in this three-node setting: $y_1\indep y_3\given(y_2,x)$, but not $y_1\indep y_3\given x$. Their directions cannot be distinguished by observational conditional-independence information alone. DAGs that imply the same conditional independences are called \emph{Markov equivalent} \cite{vermapearl}.
+
+\section{Worked example 4: a collider}
+
+Now take
+\begin{equation}
+ W=\begin{pmatrix}0&0&0\\1&0&1\\0&0&0\end{pmatrix}.\label{eq:wcoll}
+\end{equation}
+The outcome at location 2 receives inputs from locations 1 and 3. The centered equations are
+\begin{align}
+ \yt_1&=\varepsilon_1,\notag\\
+ \yt_3&=\varepsilon_3,\notag\\
+ \yt_2&=\rho\yt_1+\rho\yt_3+\varepsilon_2=\rho\varepsilon_1+\varepsilon_2+\rho\varepsilon_3.\label{eq:collcenter}
+\end{align}
+\textbf{Before computing.} $\yt_1=\varepsilon_1$ and $\yt_3=\varepsilon_3$ share no disturbance, so they are marginally independent. $\yt_2$ contains both $\varepsilon_1$ and $\varepsilon_3$, so conditioning on it will connect them. Compute the distinct covariance entries with the shared-disturbance rule:
+\begin{align}
+\Sigma_{11}&=\sigma^2,\qquad
+\Sigma_{33}=\sigma^2,\notag\\
+\Sigma_{13}&=\Cov(\varepsilon_1,\varepsilon_3)=0,\notag\\
+\Sigma_{12}&=\Cov(\varepsilon_1,\rho\varepsilon_1+\varepsilon_2+\rho\varepsilon_3)=\rho\sigma^2,\notag\\
+\Sigma_{23}&=\Cov(\rho\varepsilon_1+\varepsilon_2+\rho\varepsilon_3,\varepsilon_3)=\rho\sigma^2,\notag\\
+\Sigma_{22}&=\Var(\rho\varepsilon_1+\varepsilon_2+\rho\varepsilon_3)
+ =(1+2\rho^2)\sigma^2.\label{eq:collmom}
+\end{align}
+The covariance matrix is therefore
+\begin{equation}
+\Sigma=\sigma^2\begin{pmatrix}
+1&\rho&0\\\rho&1+2\rho^2&\rho\\0&\rho&1
+\end{pmatrix}.
+\end{equation}
+Because $\Sigma_{13}=0$, SGS deletes $1-3$ \emph{already at the unconditional test}. But conditioning on location 2 gives
+\begin{alignat}{2}
+\Cov(y_1,y_3\given y_2,x)
+&=\Sigma_{13}-\frac{\Sigma_{12}\Sigma_{23}}{\Sigma_{22}} &\qquad&\why{conditional covariance formula}\notag\\
+&=0-\frac{(\rho\sigma^2)(\rho\sigma^2)}{(1+2\rho^2)\sigma^2} &&\why{insert $\Sigma_{13}=0$, $\Sigma_{12}=\Sigma_{23}=\rho\sigma^2$, $\Sigma_{22}=(1+2\rho^2)\sigma^2$}\notag\\
+&=-\frac{\rho^2\sigma^2}{1+2\rho^2}\ne0.\label{eq:collci}
+\end{alignat}
+\textbf{Why the sign is negative.} Hold $\yt_2=\rho\varepsilon_1+\varepsilon_2+\rho\varepsilon_3$ fixed. If $\yt_1=\varepsilon_1$ is large, then $\varepsilon_2+\rho\varepsilon_3$ must be smaller to keep $\yt_2$ at the same value, so $\yt_3=\varepsilon_3$ tends to be smaller. Knowing the common effect and one cause gives information about the other cause.
+
+We also have $\Sigma_{12}=\Sigma_{23}=\rho\sigma^2\ne0$. The precision matrix confirms that these two edges survive conditional tests:
+\begin{equation}
+\Omega=\frac1{\sigma^2}\begin{pmatrix}
+1+\rho^2&-\rho&\rho^2\\-\rho&1&-\rho\\\rho^2&-\rho&1+\rho^2
+\end{pmatrix}.
+\end{equation}
+Because $\Omega_{12}=\Omega_{23}=-\rho/\sigma^2\ne0$, there is no separating set for either adjacent pair. Note also $\Omega_{13}=\rho^2w_{21}w_{23}/\sigma^2=\rho^2/\sigma^2\ne0$: locations 1 and 3 both enter the equation of location 2. The resulting path has endpoints $1$ and $3$ separated by the \emph{empty} set, which does not contain node 2. Accordingly, SGS orients the identifiable collider:
+\keyeq{y_1\longrightarrow y_2\longleftarrow y_3.}
+This differs from the unorientable paths of the previous three examples. Field filtering again yields the empty graph.
+
+\section{Worked example 5: feedback yields a complete SGS skeleton}
+
+The previous $W$ matrices gave acyclic spatial input arrangements. Real spatial weights are often reciprocal. Consider the row-normalized matrix
+\begin{equation}
+W=\begin{pmatrix}
+0&1&0\\
+\tfrac12&0&\tfrac12\\
+0&1&0
+\end{pmatrix},\qquad 0<\rho<1.\label{eq:wsym}
+\end{equation}
+The neighbour links are reciprocal: 1 and 2 are neighbours in both directions, and so are 2 and 3. The values are not symmetric, because location 2 divides its weight between two neighbours. Locations 1 and 3 have no direct spatial link: $w_{13}=w_{31}=0$.
+
+\textbf{Two patterns at once.} This $W$ contains a fork part, $1\leftarrow2\to3$ ($w_{12}=w_{32}=1$), and a collider part, $1\to2\leftarrow3$ ($w_{21}=w_{23}=\tfrac12$). Example 3 showed that the fork part makes the marginal test for $(1,3)$ fail; Example 4 showed that the collider part makes the conditional test fail. Here both parts are present, so we expect that \emph{no} test removes $1-3$. The calculations below confirm this.
+
+\subsection{Solve the centered equations line by line}
+The means cancel from the spatial equations, so the centered outcomes satisfy
+\begin{align}
+ \yt_1&=\rho\yt_2+\varepsilon_1,\notag\\
+ \yt_2&=\tfrac\rho2\yt_1+\tfrac\rho2\yt_3+\varepsilon_2,\notag\\
+ \yt_3&=\rho\yt_2+\varepsilon_3.\label{eq:symcenter}
+\end{align}
+Solve for $\yt_2$ first:
+\begin{alignat}{2}
+ \yt_2
+ &=\tfrac\rho2\bigl[\rho\yt_2+\varepsilon_1\bigr]+\tfrac\rho2\bigl[\rho\yt_2+\varepsilon_3\bigr]+\varepsilon_2 &\qquad&\why{insert $\yt_1=\rho\yt_2+\varepsilon_1$ and $\yt_3=\rho\yt_2+\varepsilon_3$}\notag\\
+ &=\rho^2\yt_2+\tfrac\rho2\varepsilon_1+\tfrac\rho2\varepsilon_3+\varepsilon_2 &&\why{$\tfrac\rho2\rho+\tfrac\rho2\rho=\rho^2$}\notag\\
+ (1-\rho^2)\yt_2&=\tfrac\rho2\varepsilon_1+\varepsilon_2+\tfrac\rho2\varepsilon_3 &&\why{move $\rho^2\yt_2$ to the left}\notag\\
+ \yt_2&=\frac{\tfrac\rho2\varepsilon_1+\varepsilon_2+\tfrac\rho2\varepsilon_3}{1-\rho^2} &&\why{divide by $1-\rho^2>0$}\label{eq:sym2}
+\end{alignat}
+Insert this $\yt_2$ into $\yt_1=\rho\yt_2+\varepsilon_1$:
+\begin{alignat}{2}
+ \yt_1
+ &=\varepsilon_1+\rho\,\frac{\tfrac\rho2\varepsilon_1+\varepsilon_2+\tfrac\rho2\varepsilon_3}{1-\rho^2} &\qquad&\why{insert $\yt_2$}\notag\\
+ &=\frac{(1-\rho^2)\varepsilon_1+\tfrac{\rho^2}{2}\varepsilon_1+\rho\varepsilon_2+\tfrac{\rho^2}{2}\varepsilon_3}{1-\rho^2} &&\why{common denominator; distribute $\rho$}\notag\\
+ &=\frac{(1-\tfrac{\rho^2}{2})\varepsilon_1+\rho\varepsilon_2+\tfrac{\rho^2}{2}\varepsilon_3}{1-\rho^2}. &&\why{$1-\rho^2+\tfrac{\rho^2}{2}=1-\tfrac{\rho^2}{2}$}\label{eq:sym1}
+\end{alignat}
+The same steps with $\yt_3=\rho\yt_2+\varepsilon_3$ give
+\begin{equation}
+ \yt_3=\frac{\tfrac{\rho^2}{2}\varepsilon_1+\rho\varepsilon_2+(1-\tfrac{\rho^2}{2})\varepsilon_3}{1-\rho^2}.\label{eq:sym3}
+\end{equation}
+All three centered outcomes contain the same disturbance $\varepsilon_2$ (the fork part), so by the shared-disturbance rule every pair has nonzero marginal covariance for $0<\rho<1$.
+
+\subsection{Compute the crucial conditional covariance}
+Set $d=1-\rho^2$ \emph{for this calculation only} to keep the arithmetic readable. The three mixes are $\yt_1=[(1-\tfrac{\rho^2}{2})\varepsilon_1+\rho\varepsilon_2+\tfrac{\rho^2}{2}\varepsilon_3]/d$, $\yt_2=[\tfrac\rho2\varepsilon_1+\varepsilon_2+\tfrac\rho2\varepsilon_3]/d$, and $\yt_3=[\tfrac{\rho^2}{2}\varepsilon_1+\rho\varepsilon_2+(1-\tfrac{\rho^2}{2})\varepsilon_3]/d$. The shared-disturbance rule gives
+\begin{align}
+\Sigma_{13}
+ &=\frac{\sigma^2}{d^2}\left[
+  (1-\tfrac{\rho^2}{2})\tfrac{\rho^2}{2}+\rho^2
+  +\tfrac{\rho^2}{2}(1-\tfrac{\rho^2}{2})\right]
+ =\frac{\sigma^2}{d^2}\left[2\rho^2-\frac{\rho^4}{2}\right],\label{eq:sym13}\\
+\Sigma_{12}
+ &=\frac{\sigma^2}{d^2}\left[
+  (1-\tfrac{\rho^2}{2})\tfrac\rho2+\rho+\tfrac{\rho^2}{2}\tfrac\rho2\right]
+ =\frac{\sigma^2}{d^2}\left[
+\tfrac\rho2-\tfrac{\rho^3}{4}+\rho+\tfrac{\rho^3}{4}\right]
+ =\frac{3\rho\sigma^2}{2d^2},\label{eq:sym12}\\
+\Sigma_{23}&=\frac{3\rho\sigma^2}{2d^2}\quad\text{(by the same calculation, with 1 and 3 exchanged)},\label{eq:sym23}\\
+\Sigma_{22}
+ &=\frac{\sigma^2}{d^2}\left[\tfrac{\rho^2}{4}+1+\tfrac{\rho^2}{4}\right]
+ =\frac{(1+\tfrac{\rho^2}{2})\sigma^2}{d^2}.\label{eq:sym22}
+\end{align}
+Now apply the conditional covariance formula $\Cov(y_1,y_3\given y_2,x)=\Sigma_{13}-\Sigma_{12}\Sigma_{23}/\Sigma_{22}$:
+\begin{alignat}{2}
+\Cov(y_1,y_3\given y_2,x)
+&=\Sigma_{13}-\frac{\Sigma_{12}\Sigma_{23}}{\Sigma_{22}} &\qquad&\why{conditional covariance formula}\notag\\
+&=\frac{\sigma^2}{d^2}
+ \left[2\rho^2-\tfrac{\rho^4}{2}
+ -\frac{(\tfrac{3\rho}{2})(\tfrac{3\rho}{2})}{1+\tfrac{\rho^2}{2}}\right] &&\why{insert; the factor $\sigma^2/d^2$ is common}\notag\\
+&=\frac{\sigma^2}{d^2}\cdot
+\frac{(2\rho^2-\tfrac{\rho^4}{2})(1+\tfrac{\rho^2}{2})-\tfrac{9\rho^2}{4}}{1+\tfrac{\rho^2}{2}} &&\why{common denominator}\notag\\
+&=\frac{\sigma^2}{d^2}\cdot
+\frac{2\rho^2+\tfrac{\rho^4}{2}-\tfrac{\rho^6}{4}-\tfrac{9\rho^2}{4}}{1+\tfrac{\rho^2}{2}} &&\why{expand the product}\notag\\
+&=\frac{\sigma^2}{d^2}\cdot
+\frac{-\tfrac{\rho^2}{4}(1-2\rho^2+\rho^4)}{1+\tfrac{\rho^2}{2}} &&\why{$2\rho^2-\tfrac{9\rho^2}{4}=-\tfrac{\rho^2}{4}$; factor out $-\tfrac{\rho^2}{4}$}\notag\\
+&=\frac{\sigma^2}{d^2}\cdot
+\frac{-\tfrac{\rho^2}{4}(1-\rho^2)^2}{1+\tfrac{\rho^2}{2}} &&\why{$1-2\rho^2+\rho^4=(1-\rho^2)^2$}\notag\\
+&=-\frac{\rho^2\sigma^2}{4(1+\tfrac{\rho^2}{2})}\ne0. &&\why{$(1-\rho^2)^2=d^2$ cancels}\label{eq:symcond}
+\end{alignat}
+For comparison, the precision matrix $\Omega=\frac{1}{\sigma^2}(I-\rho W)^{\mathsf T}(I-\rho W)$ is
+\begin{equation}
+\Omega=\frac1{\sigma^2}\begin{pmatrix}
+1+\tfrac{\rho^2}{4}&-\tfrac{3\rho}{2}&\tfrac{\rho^2}{4}\\
+-\tfrac{3\rho}{2}&1+2\rho^2&-\tfrac{3\rho}{2}\\
+\tfrac{\rho^2}{4}&-\tfrac{3\rho}{2}&1+\tfrac{\rho^2}{4}
+\end{pmatrix}.\label{eq:symprec}
+\end{equation}
+Every off-diagonal precision entry is nonzero, so no edge is removed after conditioning on a third variable. Every marginal covariance is also nonzero. \textbf{SGS returns the complete three-node skeleton} $1-2$, $1-3$, $2-3$; there are no unshielded triples to orient.
+
+The extra edge $1-3$ is not a direct link in $W$. Each failed test has its own source:
+\begin{itemize}
+\item \emph{The conditional test fails because of the collider part.} By $\Omega_{13}=[-\rho(w_{13}+w_{31})+\rho^2\sum_kw_{k1}w_{k3}]/\sigma^2$ with $w_{13}=w_{31}=0$, only $k=2$ contributes: $\Omega_{13}=\rho^2w_{21}w_{23}/\sigma^2=\rho^2/(4\sigma^2)$. Location 2's equation contains both $y_1$ and $y_3$.
+\item \emph{The marginal test fails because of the fork part.} $\varepsilon_2$ enters both $\yt_1$ and $\yt_3$, so $\Sigma_{13}\ne0$.
+\end{itemize}
+A constraint-based skeleton should therefore not be read as a recovered copy of the geographic weights matrix.
+
+\section{Side-by-side comparison of every worked case}
+
+The table uses \emph{population} decisions for $0<\rho<1$, fixed $x$, and independent errors. ``Path'' means the undirected skeleton $1-2-3$ unless a collider is explicitly oriented.
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}p{26mm}X p{30mm}p{28mm}@{}}
+\toprule
+Spatial input in the SDM&Crucial original-outcome independence&SGS on $y$&SGS on $z$\\\midrule
+$1\to2\to3$&$y_1\indep y_3\given(y_2,x)$; not marginally&Unoriented path&Empty\\
+$1\leftarrow2\leftarrow3$&$y_1\indep y_3\given(y_2,x)$; not marginally&Unoriented path&Empty\\
+$1\leftarrow2\to3$&$y_1\indep y_3\given(y_2,x)$; not marginally&Unoriented path&Empty\\
+$1\to2\leftarrow3$&$y_1\indep y_3\given x$; not given $y_2$&Identified collider&Empty\\
+Reciprocal path $1\leftrightarrow2\leftrightarrow3$&No pair is independent marginally or given the third&Complete triangle&Empty\\\bottomrule
+\end{tabularx}
+\end{center}
+For completeness, the following table records the outcome of \emph{every} potential SGS independence check. ``D'' means dependent (the corresponding covariance is nonzero); ``I'' means independent (covariance zero). Every test is understood to hold $x$ fixed. The first three columns are marginal tests: they read the zeros of $\Sigma$. The last three condition on the remaining outcome: they read the zeros of $\Omega$.
+\begin{center}
+\small
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Original SDM case &$1,2$&$1,3$&$2,3$&$1,2\given3$&$1,3\given2$&$2,3\given1$\\\midrule
+Forward chain&D&D&D&D&I&D\\
+Reverse chain&D&D&D&D&I&D\\
+Fork&D&D&D&D&I&D\\
+Collider&D&I&D&D&D&D\\
+Reciprocal path&D&D&D&D&D&D\\\bottomrule
+\end{tabular}
+\end{center}
+For the exactly filtered triple $z$, all six entries would be ``I'' in every row: the errors are mutually independent, so conditioning on another error does not create dependence. The nonzero conditional entries for the original outcomes follow from the nonzero off-diagonal precision entries already computed for each case.
+
+\textbf{Interpretation.} The first four rows are generated by directed, acyclic spatial input equations and fit standard Gaussian DAG illustrations. The fifth row includes simultaneous feedback, so its complete SGS skeleton summarizes statistical conditional dependencies; it does not make the feedback system a uniquely identified causal DAG.
+
+\section{Filtering the realized field is not the same as removing its expected value}
+
+A common confusion is to replace the actual field $f$ with its expected value and assume that the remaining observations are the same $z$ as before. They are not.
+
+\textbf{The short argument.} Once $x$ is fixed, $\E[f\given x]$ is a fixed vector. Subtracting a fixed vector moves only the mean, so
+\begin{equation}
+\Cov(y-\E[f\given x]\given x)=\Cov(y\given x)=\Sigma.
+\end{equation}
+
+\textbf{The explicit form.} From $f=\rho Wy+\theta Wx$, the expected field is
+\begin{alignat}{2}
+\E[f\given x]
+ &=\E[\rho Wy+\theta Wx\given x]=\rho W\E[y\given x]+\theta Wx. &\qquad&\why{$W$ and $x$ are fixed}\label{eq:expectedfield}
+\end{alignat}
+Subtract it from the original outcome $y=\beta x+f+\varepsilon$:
+\begin{alignat}{2}
+ y-\E[f\given x]
+ &=\beta x+(f-\E[f\given x])+\varepsilon &\qquad&\why{$y=\beta x+f+\varepsilon$}\notag\\
+ &=\beta x+\rho W(y-\E[y\given x])+\varepsilon &&\why{the $\theta Wx$ terms cancel}\notag\\
+ &=\beta x+\rho W\yt+\varepsilon &&\why{$\yt=y-\E[y\given x]$}\notag\\
+ &=\beta x+\yt &&\why{$\varepsilon=(I-\rho W)\yt=\yt-\rho W\yt$}\notag\\
+ &=\beta x+(I-\rho W)^{-1}\varepsilon. &&\why{$\yt=(I-\rho W)^{-1}\varepsilon$}\label{eq:meanfieldresult}
+\end{alignat}
+The fourth line uses the centered result $\yt=(I-\rho W)^{-1}\varepsilon$ multiplied on the left by $I-\rho W$. Compare the two filters:
+\begin{align}
+ y-f&=\beta x+\varepsilon,\label{eq:compareactual}\\
+ y-\E[f\given x]&=\beta x+(I-\rho W)^{-1}\varepsilon.\label{eq:compareexpected}
+\end{align}
+The two expressions have different covariance matrices:
+\begin{align}
+\Cov(y-f\given x)&=\sigma^2I,\notag\\
+\Cov(y-\E[f\given x]\given x)&=\Sigma=\sigma^2(I-\rho W)^{-1}(I-\rho W)^{-\mathsf T}.\label{eq:distinction}
+\end{align}
+\textbf{Reading.} The realized field contains the neighbours' actual disturbances, so subtracting it removes them. The expected field contains only their averages, so the mixing $(I-\rho W)^{-1}\varepsilon$ stays. Hence \textbf{subtracting only the expected spatial field leaves the original conditional-independence structure intact}: adding or subtracting fixed constants never changes independence relations.
+
+\section{What changes outside the ideal assumptions?}\label{sec:outside}
+
+The empty graph for exact field-filtered outcomes is \emph{not} a universal property of all spatial data. It follows from the exact filtering identity $z=\beta x+\varepsilon$ together with the imposed disturbance independence.
+
+\subsection{Correlated disturbances}
+If $\Cov(\varepsilon\given x)$ is not diagonal, then $z=\beta x+\varepsilon$ still holds algebraically, but $\Cov(z\given x)=\Cov(\varepsilon\given x)$ may contain nonzero off-diagonal terms. Thus SGS on $z$ can retain edges. They represent dependence left in the disturbance process under the specified model, not necessarily direct local causal relationships.
+
+\subsection{Random covariates and unconditional learning}
+If $x$ changes across repeated observations and is itself random, it is essential to say whether SGS conditions on $x$ or not. Under exact field removal, $z_i=\beta x_i+\varepsilon_i$ and $z_j=\beta x_j+\varepsilon_j$. Assume $x$ and $\varepsilon$ are mutually independent, and expand the covariance:
+\begin{alignat}{2}
+\Cov(z_i,z_j)
+&=\Cov(\beta x_i+\varepsilon_i,\beta x_j+\varepsilon_j) &\qquad&\why{insert $z_i$ and $z_j$}\notag\\
+&=\beta^2\Cov(x_i,x_j)+\beta\Cov(x_i,\varepsilon_j) &&\why{expand the four products}\notag\\
+&\quad+\beta\Cov(\varepsilon_i,x_j)+\Cov(\varepsilon_i,\varepsilon_j) &&\notag\\
+&=\beta^2\Cov(x_i,x_j),\qquad i\ne j. &&\why{$x\indep\varepsilon$; independent errors}\label{eq:randomx}
+\end{alignat}
+Thus spatially correlated random covariates can produce dependence among field-filtered outcomes if the covariates are not conditioned upon. This does not contradict the fixed-$x$ proposition; it changes the question being asked. The rest of the paper consistently uses the conditional-on-fixed-$x$ question.
+
+\subsection{Unknown parameters and imperfect filtering}
+In an application we do not know $\rho$ and $\theta$ exactly. If estimates $\widehat\rho$ and $\widehat\theta$ are inserted into the field, the operational residual is
+\begin{alignat}{2}
+\widehat z
+&=y-\widehat\rho Wy-\widehat\theta Wx &\qquad&\why{estimated filter}\notag\\
+&=(\rho Wy+\beta x+\theta Wx+\varepsilon)-\widehat\rho Wy-\widehat\theta Wx &&\why{insert the SDM for $y$}\notag\\
+&=\beta x+\varepsilon+(\rho-\widehat\rho)Wy+(\theta-\widehat\theta)Wx. &&\why{collect the $Wy$ and $Wx$ terms}\label{eq:estimated}
+\end{alignat}
+The last two terms disappear only under exact recovery of the parameters. The term $(\rho-\widehat\rho)Wy$ puts part of the neighbours' outcomes, and therefore part of their disturbances, back into $\widehat z$; this can create residual cross-location dependence. If coefficients are estimated from the same sample, additional estimation dependence must also be handled. Hence a practical SGS comparison requires a separate analysis of filtering error and statistical-test calibration.
+
+\subsection{Spatial simultaneity, DAG assumptions, and causal claims}
+The SDM with a reciprocal $W$ is a simultaneous system: $y_i$ can feed into $y_j$ while $y_j$ feeds back into $y_i$. Classical SGS is ordinarily justified for distributions that satisfy suitable causal Markov and faithfulness assumptions relative to a DAG, with appropriate causal sufficiency. A distribution generated by spatial feedback need not have a DAG with the same arrows as $W$. A three-node triangle can be represented by many statistical DAG factorizations, and none is selected only because it fits the observed covariance.
+
+A further caution: conditional independence of $z_i$ and $z_j$ is not proof that there is no economically or physically meaningful relationship between locations $i$ and $j$. In these calculations, the independence is created by a particular algebraic transformation and independent structural disturbances. Whether the transformation is appropriate for a causal question requires separate assumptions.
+
+\section{A defensible small-network study design}\label{sec:design}
+
+The preceding derivations suggest a concrete, narrow comparison rather than an overgeneralized causal claim:
+\begin{enumerate}[leftmargin=*,label=\arabic*.]
+\item \textbf{Define the observed units.} Fix three spatial locations (the three SGS nodes), one common covariate definition, and a justified way to obtain repeated comparable realizations.
+\item \textbf{Specify $W$.} State whether weights are directed or reciprocal, whether rows are normalized, and whether isolated locations have zero rows. The sparse illustrative matrices here are chosen to show mechanisms, not to claim every matrix is a realistic map.
+\item \textbf{Estimate or set the SDM.} Specify $\rho,\beta,\theta$ and how they are obtained. Keep the same fitted model for the original-versus-filtered comparison.
+\item \textbf{Define the actual filter.} Distinguish $y-\rho Wy-\theta Wx$ from $y-\E[f\given x]$ or a generic regression residual.
+\item \textbf{Report all six tests.} For each pair, give its marginal covariance (or statistical test) and its covariance conditional on the third location. Do not report only the final graph.
+\item \textbf{Compare skeletons and compelled collider arrows.} A changed skeleton, a changed collider, and a different choice among Markov-equivalent orientations are three distinct outcomes.
+\item \textbf{Separate ideal algebra from inference.} Run population calculations first, then finite-sample experiments with estimates and pre-specified test levels. A single observation of the triple is not an SGS sample.
+\end{enumerate}
+
+\section{Conclusion}
+
+In a scalar three-location SDM with fixed covariates and independent Gaussian disturbances, exact subtraction of the realized spatial field leads to $z_i=\beta x_i+\varepsilon_i$. Each filtered value contains only its own disturbance, so population SGS on the filtered outcomes returns no edges. In contrast, the original outcomes mix the disturbances of several locations through $(I-\rho W)^{-1}$, and the mixing pattern set by $W$ decides the graph: a noncollider path, an identifiable collider, or a complete skeleton when a fork part and a collider part are present together. We derived each of these outcomes rather than treating graph changes as self-evident.
+
+Two implications are essential. First, \emph{the direction of a chain is not recovered simply by applying SGS}: the forward chain, reverse chain, and fork share the same observed independence pattern. Second, \emph{removing a realized spatial field is not the same as removing an expected field}: the latter leaves the reduced-form spatial covariance in place. These distinctions define the theoretical problem precisely; whether a filtered graph is more useful or more causally informative must be argued with a target estimand and additional assumptions, not inferred from the fact that the graph becomes sparser.
+
+{\small
+\begin{thebibliography}{9}
+\bibitem{lesage}
+LeSage, J., and R. Kelley Pace (2009).
+\emph{Introduction to Spatial Econometrics}. Chapman \& Hall/CRC.
+\url{https://repository.lsu.edu/finance_pubs/96/}.
+
+\bibitem{spirtes}
+Spirtes, P., C. Glymour, and R. Scheines (2000).
+\emph{Causation, Prediction, and Search}, second edition. MIT Press.
+\url{https://mitpress.mit.edu/9780262527927/causation-prediction-and-search/}.
+
+\bibitem{vermapearl}
+Verma, T., and J. Pearl (1990).
+``Equivalence and Synthesis of Causal Models.''
+Proceedings of the Sixth Conference on Uncertainty in Artificial Intelligence.
+\url{https://dblp.org/rec/conf/uai/VermaP90.html}.
+
+\bibitem{colombo}
+Colombo, D., and M. H. Maathuis (2014).
+``Order-Independent Constraint-Based Causal Structure Learning.''
+\emph{Journal of Machine Learning Research} 15:3921--3962.
+\url{https://www.jmlr.org/papers/volume15/colombo14a/colombo14a.pdf}.
+
+\bibitem{koller}
+Koller, D., and N. Friedman (2009).
+\emph{Probabilistic Graphical Models: Principles and Techniques}.
+MIT Press, Chapter 7 (Gaussian Bayesian networks).
+
+\bibitem{peters}
+Peters, J., D. Janzing, and B. Sch\"olkopf (2017).
+\emph{Elements of Causal Inference: Foundations and Learning Algorithms}.
+MIT Press.
+\url{https://web.math.ku.dk/~peters/jonas_files/ElementsOfCausalInference.pdf}.
+
+\end{thebibliography}
+}
+\end{document}

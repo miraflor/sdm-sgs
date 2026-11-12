@@ -1,0 +1,33 @@
+# LaTeX auxiliary and generated files (the included PDFs are tracked)
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+*.xdv
+*.lof
+*.lot
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+
+# System/editor clutter
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
